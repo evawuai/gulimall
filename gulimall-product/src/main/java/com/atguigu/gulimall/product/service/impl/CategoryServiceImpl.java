@@ -1,10 +1,10 @@
 package com.atguigu.gulimall.product.service.impl;
 
+import com.atguigu.gulimall.product.dao.CategoryBrandRelationDao;
+import com.atguigu.gulimall.product.service.CategoryBrandRelationService;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -16,6 +16,7 @@ import com.atguigu.common.utils.Query;
 import com.atguigu.gulimall.product.dao.CategoryDao;
 import com.atguigu.gulimall.product.entity.CategoryEntity;
 import com.atguigu.gulimall.product.service.CategoryService;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service("categoryService")
@@ -39,6 +40,31 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
                 .peek(menu -> menu.setChildren(getChildrens(menu, entityList)))
                 .sorted(Comparator.comparingInt(item -> (item.getSort() == null ? 0 : item.getSort())))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void removeMenuByIds(List<Long> asList) {
+        //todo
+        baseMapper.deleteBatchIds(asList);
+    }
+
+    @Override
+    public Long[] findCatelogPath(Long catelogId) {
+        CategoryEntity categoryEntity = baseMapper.selectById(catelogId);
+        List<Long> path=new ArrayList<>();
+        path.add(categoryEntity.getCatId());
+        while (categoryEntity.getParentCid()!=0){
+            path.add(categoryEntity.getParentCid());
+            baseMapper.selectById(categoryEntity.getParentCid());
+        }
+        Collections.reverse(path);
+        return path.toArray(new Long[path.size()]);
+    }
+    @Transactional
+    @Override
+    public void updateCascade(CategoryEntity category) {
+        this.updateById(category);
+        CategoryBrandRelationDao.updateCategory(category.getCatId(),category.getName());
     }
 
     /**
